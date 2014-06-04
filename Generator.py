@@ -94,8 +94,9 @@ class ReportGenerator:
                     group by d.jclasscode,d.jclassname
                     order by Total_Amount desc
                     '''.format(self.date_start, self.date_end)
-                )
-                ,
+                )])
+            ,('CustomerReport',
+                [
                 ('Customer_Product Report',
                  '''
                  -- details for customer
@@ -130,7 +131,17 @@ class ReportGenerator:
                  where jbilldate between '{0}' and dateadd(d,1,'{1}')  --and jsupclientname
                  group by b.jsupclientname
                  order by Total_Amount desc'''.format(self.date_start, self.date_end)
-                )
+                ),
+                ('Customer Info',
+                 '''
+                select jsupclientcode as Customer_Code,jsupclientName as Name,jaddress as Address,jPostcode as Postcode,
+		jcontact as ContactPerson,jTele as Tel,jmobilenumber as Mobile,jfax as Fax,jEmail as Email,jwebsite as Website,
+		jcountry as Country,jcompany as CompanyName,jcity as City,jStartdaten as Create_Date
+ from tsupclient
+
+where jfunctionid=30700 and jnouse=0--means customer
+order by name'''
+                ),
             ]
             )
         )
@@ -141,7 +152,7 @@ class ReportGenerator:
         pass
 
     def create_excel_book(self, bookname, list_sql):
-        wb = xlwt3.Workbook()
+        wb = xlwt3.Workbook(style_compression=2)
         for counter, sql in enumerate(list_sql):
             self.add_sheet_excel(sql[1], wb, sql[0])
         wb.save(bookname + '_{0}__{1}.xls'.format(self.date_start, self.date_end))
@@ -149,6 +160,8 @@ class ReportGenerator:
     def add_sheet_excel(self, sql, wb, sheetname):
         report_table = self.getdata(sql)
         ws = wb.add_sheet(sheetname)
+        ws.set_panes_frozen(True) # frozen headings instead of split panes
+        ws.set_horz_split_pos(1) # in general, freeze after last heading
         wrap_ws = FitSheetWrapper.FitSheetWrapper(ws)
         self.createSheet(report_table, wrap_ws)
 
@@ -167,9 +180,14 @@ class ReportGenerator:
 
 
     def getdata(self, sql):
+
+
+
         conn = pypyodbc.connect(
             "driver={SQL Server};server=server-pc\sqlexpress;database=TSNET1001;uid=ntsmyanmar;pwd=12345678")
         # conn=pypyodbc.connect("driver={SQL Server};server=.\sqlexpress;database=TSNET1013;trusted_connection=yes;")
+
+
         cursor = conn.cursor()
 
         cursor.execute(sql)

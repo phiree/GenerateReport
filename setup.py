@@ -19,8 +19,8 @@ if sys.platform == 'win32':
     base = 'Win32GUI'
 
 
-setup(name='simple_Tkinter',
+setup(name='Report Generator',
       version='0.1',
-      description='Sample cx_Freeze Tkinter script',
+      description='NTS Myanmar Reportor Generator',
       executables= [Executable("Generator_BillRelation.py", base=base),Executable("Generator_SaleReport.py", base=base)]
 )

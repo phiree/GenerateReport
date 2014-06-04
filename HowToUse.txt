@@ -1,5 +1,5 @@
-double click  win_exe.exe
-define start date and end date
-click Generate Report.
-the excel file will generated in the same directory  
-with name 'Customer_Report__[startdate]_[enddate].xls'
+1 double click  Generator_****.exe
+2 define start date and end date
+3 click Generate Report.
+
+the excel file report will be generated in the same directory  with name **_Report__[startdate]_[enddate].xls'
