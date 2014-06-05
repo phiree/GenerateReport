@@ -54,8 +54,8 @@ class ReportGenerator:
                  left join tbillinfo e on b.jusebilltype=e.jid left join temp_english_name_billtype tt3 on tt3.typeid=e.jid
                  left join tordergrid og on og.jbillid=f.jid
                  where b.jrelationfrom is not null
-                    and a.jbilldate between '{0}' and dateadd(d,1,'{1}')
-                    and a.jbilltype=1201
+                    and b.jbilldate between '{0}' and dateadd(d,1,'{1}')
+                    and b.jbilltype=1201
                  group by f.jid, tt1.englishname,a.jbillcode,
                  --'Qty',
                  a.jgridqty,a.jbillamt,a.jbilldate,
@@ -74,12 +74,21 @@ class ReportGenerator:
             [
                 ('Product Sale Report',
                  '''
-                 -- product sale report
-                 select a.jgoodscode as Product_Code,a.jgoodsname as Product_Name,sum(a.jgoodsqty) as Total_Quantity,sum(a.jgoodsamt) as Total_Amount
-                 from VSaleAccCompare  a
-                 where jbilldate between '{0}' and dateadd(d,1,'{1}') --and jsupclientname
-                 group by a.jgoodsname,a.jgoodscode
-                 order by Total_Amount desc
+                select a.jgoodscode as Product_Code,
+                a.jgoodsname as Product_Name,
+                sum(a.jgoodsqty) as Total_Quantity,
+                sum(a.jgoodsamt) as Total_Amount,
+                b.jrefcostprice as Reference_Cost_Price,
+                b.jrefcostprice*sum(a.jgoodsqty) as Reference_Cost_Amount,
+                sum(a.jgoodsamt)- b.jrefcostprice*sum(a.jgoodsqty) as Reference_Profit,
+                case sum(a.jgoodsamt) when 0 then 0 else (sum(a.jgoodsamt)- b.jrefcostprice*sum(a.jgoodsqty))/sum(a.jgoodsamt) end as Reference_Profit_Rate
+                from VSaleAccCompare  a
+                inner join tgoods b 
+                on a.jgoodscode=b.jgoodscode
+                where 1=1 
+                and jbilldate between '{0}' and dateadd(d,1,'{1}') --and jsupclientname
+                group by a.jgoodsname,a.jgoodscode,b.jrefcostprice
+                order by Total_Amount desc
                  '''.format(self.date_start, self.date_end)
                 )
                 ,
@@ -94,7 +103,15 @@ class ReportGenerator:
                     group by d.jclasscode,d.jclassname
                     order by Total_Amount desc
                     '''.format(self.date_start, self.date_end)
-                )])
+                )
+                ,(
+                'Product Never Sold',
+                '''
+                select jgoodscode as Code,jgoodsname as  Name,jmodel as Factory_Code,jpointsaleprice as Sale_Price,jrefcostprice as Cost_Price
+                from tgoods where jgoodscode not in(select jgoodscode from VSaleAccCompare) order by jgoodscode
+                '''
+                )
+                ])
             ,('CustomerReport',
                 [
                 ('Customer_Product Report',
@@ -135,12 +152,11 @@ class ReportGenerator:
                 ('Customer Info',
                  '''
                 select jsupclientcode as Customer_Code,jsupclientName as Name,jaddress as Address,jPostcode as Postcode,
-		jcontact as ContactPerson,jTele as Tel,jmobilenumber as Mobile,jfax as Fax,jEmail as Email,jwebsite as Website,
-		jcountry as Country,jcompany as CompanyName,jcity as City,jStartdaten as Create_Date
- from tsupclient
-
-where jfunctionid=30700 and jnouse=0--means customer
-order by name'''
+                jcontact as ContactPerson,jTele as Tel,jmobilenumber as Mobile,jfax as Fax,jEmail as Email,jwebsite as Website,
+                jcountry as Country,jcompany as CompanyName,jcity as City,jStartdaten as Create_Date
+                from tsupclient
+                where jfunctionid=30700 and jnouse=0--means customer
+                order by name'''
                 ),
             ]
             )
