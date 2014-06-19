@@ -19,7 +19,7 @@ class ReportGenerator:
         select TStockIOBill.JID,TStockIOBill.JDeptID,TStockIOBill.JSupClientID,    
         TStockIOBill.JHandleID,TStockIOBill.JMemo,TStockIOGrid.JGoodsID,TStockIOBill.JBillDate,    
         TStockIOBill.JBillCode,TStockIOBill.JBillType,JGoodsQty=TStockIOGrid.JGridQty,    
-        JGoodsPrice=TStockIOGrid.JGridPrice*TStockIOGrid.JDiscRate,JGoodsAmt=TStockIOGrid.JGridAmt,JCollectAmt=0.0    
+        JGoodsPrice=TStockIOGrid.JGridPrice*TStockIOGrid.JDiscRate,JGoodsAmt= case when TStockIOBill.jbilltype=1199 then -1 else 1 end * TStockIOGrid.JGridAmt,JCollectAmt=0.0    
         from TStockIOBill    
         left outer join TStockIOGrid on TStockIOBill.JID=TStockIOGrid.JBillID    
         where TStockIOBill.JUseID>=0 and TStockIOBill.JBillType in (1201,1199) --JuseID: -1表示已取消 0 表示与其他单据没关联 大于零表示关联的ID,
@@ -121,7 +121,7 @@ class ReportGenerator:
             ,
             ('Sale_Report',
             [
-                ('Product_Sale_Report',
+                ('Product_Sale',
                 
                  '''
                  select b.jgoodscode as Product_Code,
@@ -136,7 +136,7 @@ sum(a.jgoodsqty) as Total_Sale_Quantity,
 				sum(importamount.totalimport) as Total_Import_Qauntity,
 case sum(importamount.totalimport) when 0 then null else  sum(a.jgoodsqty) /sum(importamount.totalimport) end as Move_Rate
                 from '''+sale_table_detail+'''
-		inner join 
+		left join 
  (
 			select a.jgoodsid, case  when a.total_qty is null then 0 else a.total_qty end
 			- case when  b.total_qty is null then 0 else b.total_qty end as totalimport from
@@ -172,14 +172,14 @@ on a.jgoodsid=importamount.jgoodsid
                  '''.format(self.date_start, self.date_end)
                 )
                 ,
-                ('Product_Category_Sale_Report',
+                ('Product_Category_Sale',
                  '''
                     -- product sort sale report
                   select s.jclasscode as Category_Code,s.jclassname as Category_Name,sum(a.jgoodsqty) as Total_Quantity,sum(a.jgoodsamt) as Total_Amount
 
                   from  '''+sale_table_detail+'''
                   inner join tgoods g on a.jgoodsid=g.jid
-                  inner join tbasicsort s on g.jclassid=s.jid
+                  left join tbasicsort s on g.jclassid=s.jid
                   where 
                     jbilldate between '{0}' and dateadd(d,1,'{1}')
                   group by s.jclasscode,s.jclassname
@@ -196,7 +196,7 @@ on a.jgoodsid=importamount.jgoodsid
                 ])
             ,('Customer_Report',
                 [
-                ('Customer_Product Report',
+                ('Customer_Product',
                  '''
                  -- details for customer
                  select case when  b.jsupclientname is null then 'General(Cash)' else b.jsupclientname end as Customer_Name,g.jgoodscode as Product_Code,g.jgoodsname as Product_Name,sum(a.jgoodsqty) as Total_Quantity,sum(a.jgoodsamt) as Total_Amount
@@ -209,20 +209,20 @@ on a.jgoodsid=importamount.jgoodsid
                  '''.format(self.date_start, self.date_end)
                 )
                 ,
-                ('Customer_ProductCategory Report',
+                ('Customer_Product_Category',
                  '''
                  --  summary by sort
                  select case when  b.jsupclientname is null then 'General(Cash)' else b.jsupclientname end as Customer_Name,d.jclassname as Category_Name,sum(a.jgoodsqty) as Total_Quantity,sum(a.jgoodsamt) as Total_Amount
                  from '''+sale_table_detail+'''
                  left join tsupclient b on a.jsupclientid=b.jid
                  inner join tgoods c on a.jgoodsid=c.jid
-                 inner join tbasicsort d on c.jclassid=d.jid
+                 left join tbasicsort d on c.jclassid=d.jid
                  where jbilldate between '{0}' and dateadd(d,1,'{1}') --and jsupclientname
                  group by b.jsupclientname,d.jclassname
                  order by Total_Amount desc'''.format(self.date_start, self.date_end)
                 )
                 ,
-                ('Customer_Summary_Report',
+                ('Customer_Summary',
                  '''
                  --  summary by customer
                  select case when  b.jsupclientname is null then 'General(Cash)' else b.jsupclientname end as Customer_Name,sum(a.jgoodsqty) as Total_Quantity,sum(a.jgoodsamt) as Total_Amount
