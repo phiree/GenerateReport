@@ -13,47 +13,69 @@ class ReportGenerator:
         self.date_end = date_end
         self.reportname=reportname
     def generate_reports(self):
-        sale_table_detail='''
+        sale_bill_detail='''
         (
-        ------- 销售开票 (本地开票和 委托开票)
-        select TStockIOBill.JID,TStockIOBill.JDeptID,TStockIOBill.JSupClientID,    
-        TStockIOBill.JHandleID,TStockIOBill.JMemo,TStockIOGrid.JGoodsID,TStockIOBill.JBillDate,    
-        TStockIOBill.JBillCode,TStockIOBill.JBillType,JGoodsQty=TStockIOGrid.JGridQty,    
-        JGoodsPrice=TStockIOGrid.JGridPrice*TStockIOGrid.JDiscRate,JGoodsAmt= case when TStockIOBill.jbilltype=1199 then -1 else 1 end * TStockIOGrid.JGridAmt,JCollectAmt=0.0    
-        from TStockIOBill    
-        left outer join TStockIOGrid on TStockIOBill.JID=TStockIOGrid.JBillID    
-        where TStockIOBill.JUseID>=0 and TStockIOBill.JBillType in (1201,1199) --JuseID: -1表示已取消 0 表示与其他单据没关联 大于零表示关联的ID,
-        union all    
-        --------调价单 
-        select JID,JDeptID,JSupClientID,JHandleID,JMemo,JGoodsID=0,JBillDate,JBillCode,JBillType,JGoodsQty=0.0,    
-        JGoodsPrice=0.0,JGoodsAmt=JBillAmt,JCollectAmt=0.0    
-        from TAdjBill where TAdjBill.JUseID>=0 and TAdjBill.JBillType=1402    
-        union all    
-        select TPosBill.JID,JDeptID=TStock.JDeptID,                 
-        JSupClientID,JHandleID,JMemo,JGoodsID,JBillDate,                 
-        JBillCode,JBillType,JGoodsQty,                 
-        JGoodsPrice,JGoodsAmt,JCollectAmt=0.0                 
-        from                  
-        (
-            -------- 未转移的 零售单据
-            select TPosBill.JID,JBillType=1207,JStockID,TPosBill.JSupClientID,TPosBill.JHandleID,JBillDate,                 
-            JBillCode=CONVERT(varchar(20),JSequenceID),                   
-            JMemo,TPosGrid.JGoodsID,JGoodsQty=TPosGrid.JGridQty,JGoodsPrice=TPosGrid.JPointSalePrice,                 
-            JGoodsAmt=TPosGrid.JGridAmt                    
-            from TPosBill                    
-            left outer join TPosGrid on TPosGrid.JBillID=TPosBill.JID                              
-            union all   
-            ---------- 已转移的 零售单据                  
-            select TPosBillHist.JBillID,JBillType=1207,JStockID,TPosBillHist.JSupClientID,TPosBillHist.JHandleID,JBillDate,                 
-            JBillCode=CONVERT(varchar(20),JSequenceID),                   
-            JMemo,TPosGridHist.JGoodsID,JGoodsQty=TPosGridHist.JGridQty,JGoodsPrice=TPosGridHist.JPointSalePrice,                 
-            JGoodsAmt=TPosGridHist.JGridAmt                    
-            from TPosBillHist                    
-            left outer join TPosGridHist on TPosGridHist.JBillID=TPosBillHist.JBillID 
-            ) as TPosBill                   
-        left outer join TStock on TStock.JID=TPosBill.JStockID
-        ) as a
+				select TStockIOBill.JID,TStockIOBill.JDeptID,TStockIOBill.JSupClientID,
+
+				TStockIOBill.JHandleID,TStockIOBill.JMemo,TStockIOGrid.JGoodsID,TStockIOBill.JBillDate,
+				TStockIOBill.JBillCode,TStockIOBill.JBillType,JGoodsQty=TStockIOGrid.JGridQty,
+				JGoodsPrice=TStockIOGrid.JGridPrice*TStockIOGrid.JDiscRate,
+				JGoodsAmt= case when TStockIOBill.jbilltype=1199 then -1 else 1 end * TStockIOGrid.JGridAmt,JCollectAmt=0.0
+				from TStockIOBill
+				left outer join TStockIOGrid on TStockIOBill.JID=TStockIOGrid.JBillID
+
+				where TStockIOBill.JUseID>=0 and TStockIOBill.JBillType in (1201,1199) --JuseID: -1表示已取消 0 表示与其他单据没关联 大于零表示关联的ID,
+				union all
+				--------调价单
+				select JID,JDeptID,JSupClientID,JHandleID,JMemo,JGoodsID=0,JBillDate,JBillCode,JBillType,JGoodsQty=0.0,
+				JGoodsPrice=0.0,JGoodsAmt=JBillAmt,JCollectAmt=0.0
+				from TAdjBill where TAdjBill.JUseID>=0 and TAdjBill.JBillType=1402
+				union all
+				select TPosBill.JID,JDeptID=TStock.JDeptID,
+				JSupClientID,JHandleID,JMemo,JGoodsID,JBillDate,
+				JBillCode,JBillType,JGoodsQty,
+				JGoodsPrice,JGoodsAmt,JCollectAmt=0.0
+				from
+					(
+					-------- 未转移的 零售单据
+					select TPosBill.JID,JBillType=1207,JStockID,TPosBill.JSupClientID,TPosBill.JHandleID,JBillDate,
+					JBillCode=CONVERT(varchar(20),JSequenceID),
+					JMemo,TPosGrid.JGoodsID,JGoodsQty=TPosGrid.JGridQty,JGoodsPrice=TPosGrid.JPointSalePrice,
+					JGoodsAmt=TPosGrid.JGridAmt
+					from TPosBill
+					left outer join TPosGrid on TPosGrid.JBillID=TPosBill.JID
+
+					union all
+					---------- 已转移的 零售单据
+					select TPosBillHist.JBillID,JBillType=1207,JStockID,TPosBillHist.JSupClientID,TPosBillHist.JHandleID,JBillDate,
+					JBillCode=CONVERT(varchar(20),JSequenceID),
+					JMemo,TPosGridHist.JGoodsID,JGoodsQty=TPosGridHist.JGridQty,JGoodsPrice=TPosGridHist.JPointSalePrice,
+					JGoodsAmt=TPosGridHist.JGridAmt
+					from TPosBillHist
+					left outer join TPosGridHist on TPosGridHist.JBillID=TPosBillHist.JBillID
+					) as TPosBill
+				left outer join TStock on TStock.JID=TPosBill.JStockID
+				) as a
         '''
+        sale_product_detail='''
+        (
+            select  a.JGoodsID, b.jgoodscode as Product_Code,b.jclassid,
+            b.jgoodsname as Product_Name,
+            sum(a.jgoodsamt) as Total_Amount,
+            b.jrefcostprice as Reference_Cost_Price,
+            b.jrefcostprice*sum(a.jgoodsqty) as Reference_Cost_Amount,
+            sum(a.jgoodsamt)- b.jrefcostprice*sum(a.jgoodsqty) as Reference_Profit,
+            case sum(a.jgoodsamt) when 0 then 0 else (sum(a.jgoodsamt)- b.jrefcostprice*sum(a.jgoodsqty))/sum(a.jgoodsamt) end as Reference_Profit_Rate,
+            sum(a.jgoodsqty) as Total_Sale_Quantity
+            from 
+            '''+sale_bill_detail+'''
+            inner join tgoods b
+            on a.jgoodsid=b.jid
+            where a.jbilldate between '{0}' and dateadd(d,1,'{1}')
+            group by b.jgoodsname,b.jgoodscode,b.jrefcostprice,a.JGoodsID,b.JClassID
+          ) 
+         as product_sale_summary
+        '''.format(self.date_start, self.date_end)
         list_sql = (
             ('Bill_Report',
             [
@@ -124,67 +146,74 @@ class ReportGenerator:
                 ('Product_Sale',
                 
                  '''
-                 select b.jgoodscode as Product_Code,
-                b.jgoodsname as Product_Name,
-                
-                sum(a.jgoodsamt) as Total_Amount,
-                b.jrefcostprice as Reference_Cost_Price,
-                b.jrefcostprice*sum(a.jgoodsqty) as Reference_Cost_Amount,
-                sum(a.jgoodsamt)- b.jrefcostprice*sum(a.jgoodsqty) as Reference_Profit,
-                case sum(a.jgoodsamt) when 0 then 0 else (sum(a.jgoodsamt)- b.jrefcostprice*sum(a.jgoodsqty))/sum(a.jgoodsamt) end as Reference_Profit_Rate,
-sum(a.jgoodsqty) as Total_Sale_Quantity,
-				sum(importamount.totalimport) as Total_Import_Qauntity,
-case sum(importamount.totalimport) when 0 then null else  sum(a.jgoodsqty) /sum(importamount.totalimport) end as Move_Rate
-                from '''+sale_table_detail+'''
+                  select product_sale_summary.Product_Code, 
+		product_sale_summary.Product_Name,
+		product_sale_summary.Total_Amount,
+		product_sale_summary.Reference_Cost_Price,
+		product_sale_summary.Reference_Cost_Amount,
+		product_sale_summary.Reference_Profit,
+		product_sale_summary.Reference_Profit_Rate,
+		product_sale_summary.Total_Sale_Quantity,
+    importamount.totalimport as Total_Import_Quantity,Total_Sale_Quantity/case totalimport when 0 then null else totalimport end  as Move_Rate
+    from '''+sale_product_detail+'''
 		left join 
  (
-			select a.jgoodsid, case  when a.total_qty is null then 0 else a.total_qty end
-			- case when  b.total_qty is null then 0 else b.total_qty end as totalimport from
+			select jgoodsid, SUM(total_qty) as  totalimport from
 			(
-			select  b.jgoodsid, sum(jgridqty)  as total_qty  
+			--入库-出库
+			select  b.jgoodsid,  sum(jgridqty)* case when a.JBillType in (1102,1104) then 1 else -1 end  as total_qty  
 			from tstockiobill  a  
 			inner join tstockiogrid b
 			on a.jid=b.jbillid  
 			where 1=1
-			and a.jbilltype  in  (1102,1104)
-			group by b.jgoodsid
-			) a
-			full join
-			(
-			select  b.jgoodsid, sum(jgridqty)  as total_qty  
-			from tstockiobill  a  
-			inner join tstockiogrid b
-			on a.jid=b.jbillid  
-			where 1=1
-			and a.jbilltype  in  (1204)
-			group by b.jgoodsid
-			) b
-			on a.jgoodsid=b.jgoodsid 
+			and a.jbilltype  in  (1102,1104,1204)
+			group by b.jgoodsid,a.JBillType
+			) as t_sum_qty
+			group by (JGoodsID)	
 	)
 as importamount
-on a.jgoodsid=importamount.jgoodsid 
-                inner join tgoods b
-                on a.jgoodsid=b.jid
-                where 1=1
-                    and a.jbilldate between '{0}' and dateadd(d,1,'{1}') --and jsupclientname
-                group by b.jgoodsname,b.jgoodscode,b.jrefcostprice
-                order by Total_Amount desc
-                 '''.format(self.date_start, self.date_end)
+on product_sale_summary.jgoodsid=importamount.jgoodsid 
+               
+                order by Total_Amount desc '''
                 )
                 ,
                 ('Product_Category_Sale',
                  '''
-                    -- product sort sale report
-                  select s.jclasscode as Category_Code,s.jclassname as Category_Name,sum(a.jgoodsqty) as Total_Quantity,sum(a.jgoodsamt) as Total_Amount
-
-                  from  '''+sale_table_detail+'''
-                  inner join tgoods g on a.jgoodsid=g.jid
-                  left join tbasicsort s on g.jclassid=s.jid
-                  where 
-                    jbilldate between '{0}' and dateadd(d,1,'{1}')
-                  group by s.jclasscode,s.jclassname
-                  order by Total_Amount desc
-                    '''.format(self.date_start, self.date_end)
+select category_sale_summary.JClassCode as Category_Code
+,category_sale_summary.JClassName as Category_Name
+,category_sale_summary.Total_Sale_Amount
+,category_sale_summary.Total_Cost_Amount
+,category_sale_summary.Total_Sale_Quantity
+,import_total.totalimport as Total_Import_Quantity
+,category_sale_summary.Total_Sale_Quantity/case totalimport when 0 then null else totalimport end  as Move_Rate
+from 
+(
+select JClassCode,JClassName,SUM(product_sale_summary.Total_Amount) as Total_Sale_Amount
+,SUM(product_sale_summary.Reference_Cost_Amount) as Total_Cost_Amount,
+SUM(product_sale_summary.Total_Sale_Quantity) as Total_Sale_Quantity
+from
+  '''+sale_product_detail+'''
+  left join tbasicsort s on product_sale_summary.jclassid=s.jid
+	group by s.JClassName,s.JClassCode
+)
+as category_sale_summary
+left join (
+		select t_sum_qty.JClassCode,t_sum_qty.JClassName, SUM(total_qty) as  totalimport from
+			(
+			--入库
+			select  s.JClassCode,s.JClassName,  sum(jgridqty)* case when a.JBillType in (1102,1104) then 1 else -1 end  as total_qty
+			from tstockiobill  a
+			inner join tstockiogrid b
+			on a.jid=b.jbillid
+			inner join TGoods g on b.JGoodsID=g.JID
+			left join TBasicSort s on s.JID=g.JClassID
+			where  a.jbilltype  in  (1102,1104,1204)
+			group by s.JClassCode,s.JClassName,a.JBillType
+			) as t_sum_qty
+		group by JClassName,JClassCode
+        ) as import_total
+on import_total.JClassCode=category_sale_summary.JClassCode
+                    '''
                 )
                 ,(
                 'Product_Never_Sold',
@@ -200,10 +229,10 @@ on a.jgoodsid=importamount.jgoodsid
                  '''
                  -- details for customer
                  select case when  b.jsupclientname is null then 'General(Cash)' else b.jsupclientname end as Customer_Name,g.jgoodscode as Product_Code,g.jgoodsname as Product_Name,sum(a.jgoodsqty) as Total_Quantity,sum(a.jgoodsamt) as Total_Amount
-                 from'''+sale_table_detail+'''
+                 from'''+sale_bill_detail+'''
                  inner join tgoods g on a.jgoodsid=g.jid
                  left join tsupclient b on a.jsupclientid=b.jid
-                 where jbilldate between '{0}' and dateadd(d,1,'{1}') --and jsupclientname
+                 
                  group by b.jsupclientname,g.jgoodsname,g.jgoodscode
                  order by jsupclientname ,Total_Amount desc
                  '''.format(self.date_start, self.date_end)
@@ -213,7 +242,7 @@ on a.jgoodsid=importamount.jgoodsid
                  '''
                  --  summary by sort
                  select case when  b.jsupclientname is null then 'General(Cash)' else b.jsupclientname end as Customer_Name,d.jclassname as Category_Name,sum(a.jgoodsqty) as Total_Quantity,sum(a.jgoodsamt) as Total_Amount
-                 from '''+sale_table_detail+'''
+                 from '''+sale_bill_detail+'''
                  left join tsupclient b on a.jsupclientid=b.jid
                  inner join tgoods c on a.jgoodsid=c.jid
                  left join tbasicsort d on c.jclassid=d.jid
@@ -226,7 +255,7 @@ on a.jgoodsid=importamount.jgoodsid
                  '''
                  --  summary by customer
                  select case when  b.jsupclientname is null then 'General(Cash)' else b.jsupclientname end as Customer_Name,sum(a.jgoodsqty) as Total_Quantity,sum(a.jgoodsamt) as Total_Amount
-                 from '''+sale_table_detail+'''
+                 from '''+sale_bill_detail+'''
                  left join tsupclient b on a.jsupclientid=b.jid
                  where jbilldate between '{0}' and dateadd(d,1,'{1}')  --and jsupclientname
                  group by b.jsupclientname
@@ -333,7 +362,9 @@ c.juseid,a.iscanceled
         wb.save(report_folder+bookname + '_{0}__{1}.xls'.format(self.date_start, self.date_end))
 
     def add_sheet_excel(self, sql, wb, sheetname):
+        
         report_table = self.getdata(sql)
+        
         ws = wb.add_sheet(sheetname)
         ws.set_panes_frozen(True) # frozen headings instead of split panes
         ws.set_horz_split_pos(1) # in general, freeze after last heading
@@ -356,13 +387,10 @@ c.juseid,a.iscanceled
 
     def getdata(self, sql):
 
+        print(sql)
 
-
-        conn = pypyodbc.connect(
-            config.connection_string)
-        # conn=pypyodbc.connect("driver={SQL Server};server=.\sqlexpress;database=TSNET1013;trusted_connection=yes;")
-
-
+        conn = pypyodbc.connect(config.connection_string)
+        
         cursor = conn.cursor()
 
         cursor.execute(sql)
