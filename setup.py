@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-
+# -*- coding: utf-8 -*-  
 # A simple setup script to create an executable using Tkinter. This also
 # demonstrates the method for creating a Windows executable that does not have
 # an associated console.
@@ -17,10 +16,8 @@ from cx_Freeze import setup, Executable
 base = None
 if sys.platform == 'win32':
     base = 'Win32GUI'
-
-
 setup(name='Report Generator',
       version='0.1',
       description='NTS Myanmar Reportor Generator',
-      executables= [Executable("Generator_BillRelation.py", base=base),Executable("Generator_SaleReport.py", base=base)]
+      executables= [Executable("Generator_BillRelation.py", base=base),Executable("Generator_SaleReport.py",base=base)]
 )

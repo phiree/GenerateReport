@@ -154,6 +154,7 @@ class ReportGenerator:
 		product_sale_summary.Reference_Profit,
 		product_sale_summary.Reference_Profit_Rate,
 		importamount.total_import_cp as Total_WareEntry_Quantity_CP,-- total warehouseentry amount bwtween selected period.
+
 		product_sale_summary.Total_Sale_Quantity,
     importamount.totalimport as Total_Import_Quantity,Total_Sale_Quantity/case totalimport when 0 then null else totalimport end  as Move_Rate
     from '''+sale_product_detail+'''
@@ -170,6 +171,7 @@ class ReportGenerator:
 			and a.jbilltype  in  (1102,1104,1204)
 			group by b.jgoodsid,a.JBillType
 			) as t_sum_qty
+
 			left join (
 			select  b.jgoodsid, case when a.jbilltype in (1102,1104) then sum(jgridqty) end as total_import ,
 			 a.jbilltype 
@@ -184,11 +186,13 @@ class ReportGenerator:
 			on t_sum_qty.jgoodsid=t_sum_qty_cp.jgoodsid and t_sum_qty.jbilltype=t_sum_qty_cp.jbilltype
 
 			group by (t_sum_qty.JGoodsID)	
+
 	)
 as importamount
 on product_sale_summary.jgoodsid=importamount.jgoodsid 
                
                 order by Total_Amount desc '''.format(self.date_start, self.date_end)
+
                 )
                 ,
                 ('Product_Category_Sale',
@@ -223,7 +227,6 @@ left join (
 			left join TBasicSort s on s.JID=g.JClassID
 			where  a.jbilltype  in  (1102,1104,1204)
 			group by s.JClassCode,s.JClassName,a.JBillType
-			
 			) as t_sum_qty
 		group by JClassName,JClassCode
         ) as import_total

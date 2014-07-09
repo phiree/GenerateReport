@@ -24,3 +24,4 @@ pip-log.txt
 
 *.pyc
 __pycache__/Generator.cpython-33.pyc
+*.pyc
