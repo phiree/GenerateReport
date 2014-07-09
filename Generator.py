@@ -160,10 +160,10 @@ class ReportGenerator:
     from '''+sale_product_detail+'''
 		left join 
  (
-			select jgoodsid, SUM(total_qty) as  totalimport from
+			select t_sum_qty.jgoodsid, sum(t_sum_qty_cp.total_import) as total_import_cp, SUM(total_qty) as  totalimport from
 			(
 			--入库-出库
-			select  b.jgoodsid,  sum(jgridqty)* case when a.JBillType in (1102,1104) then 1 else -1 end  as total_qty  
+			select  b.jgoodsid,  sum(jgridqty)* case when a.JBillType in (1102,1104) then 1 else -1 end  as total_qty,a.jbilltype
 			from tstockiobill  a  
 			inner join tstockiogrid b
 			on a.jid=b.jbillid  
@@ -179,7 +179,7 @@ class ReportGenerator:
 			inner join tstockiogrid b
 			on a.jid=b.jbillid  
 			where 1=1 
-			and a.jbilldate  '{0}' and dateadd(d,1,'{1}')
+			and a.jbilldate  between '{0}' and dateadd(d,1,'{1}')
 			and a.jbilltype  in  (1102)
 			group by b.jgoodsid,a.JBillType
 			) as t_sum_qty_cp
