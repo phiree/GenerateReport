@@ -20,7 +20,8 @@ class ReportGenerator:
 				TStockIOBill.JHandleID,TStockIOBill.JMemo,TStockIOGrid.JGoodsID,TStockIOBill.JBillDate,
 				TStockIOBill.JBillCode,TStockIOBill.JBillType,JGoodsQty=TStockIOGrid.JGridQty,
 				JGoodsPrice=TStockIOGrid.JGridPrice*TStockIOGrid.JDiscRate,
-				JGoodsAmt= case when TStockIOBill.jbilltype=1199 then -1 else 1 end * TStockIOGrid.JGridAmt,JCollectAmt=0.0
+				JGoodsAmt= case when TStockIOBill.jbilltype=1199 then -1 else 1 end * TStockIOGrid.JGridAmt,JCollectAmt=0.0,
+				TStockIOGrid.JDiscRate
 				from TStockIOBill
 				left outer join TStockIOGrid on TStockIOBill.JID=TStockIOGrid.JBillID
 
@@ -28,20 +29,21 @@ class ReportGenerator:
 				union all
 				--------调价单
 				select JID,JDeptID,JSupClientID,JHandleID,JMemo,JGoodsID=0,JBillDate,JBillCode,JBillType,JGoodsQty=0.0,
-				JGoodsPrice=0.0,JGoodsAmt=JBillAmt,JCollectAmt=0.0
+				JGoodsPrice=0.0,JGoodsAmt=JBillAmt,JCollectAmt=0.0, 1 as JDiscRate
 				from TAdjBill where TAdjBill.JUseID>=0 and TAdjBill.JBillType=1402
 				union all
 				select TPosBill.JID,JDeptID=TStock.JDeptID,
 				JSupClientID,JHandleID,JMemo,JGoodsID,JBillDate,
 				JBillCode,JBillType,JGoodsQty,
-				JGoodsPrice,JGoodsAmt,JCollectAmt=0.0
+				JGoodsPrice,JGoodsAmt,JCollectAmt=0.0,
+				JDiscRate
 				from
 					(
 					-------- 未转移的 零售单据
 					select TPosBill.JID,JBillType=1207,JStockID,TPosBill.JSupClientID,TPosBill.JHandleID,JBillDate,
 					JBillCode=CONVERT(varchar(20),JSequenceID),
 					JMemo,TPosGrid.JGoodsID,JGoodsQty=TPosGrid.JGridQty,JGoodsPrice=TPosGrid.JPointSalePrice,
-					JGoodsAmt=TPosGrid.JGridAmt
+					JGoodsAmt=TPosGrid.JGridAmt,TPosGrid.JDiscRate
 					from TPosBill
 					left outer join TPosGrid on TPosGrid.JBillID=TPosBill.JID
 
@@ -50,7 +52,7 @@ class ReportGenerator:
 					select TPosBillHist.JBillID,JBillType=1207,JStockID,TPosBillHist.JSupClientID,TPosBillHist.JHandleID,JBillDate,
 					JBillCode=CONVERT(varchar(20),JSequenceID),
 					JMemo,TPosGridHist.JGoodsID,JGoodsQty=TPosGridHist.JGridQty,JGoodsPrice=TPosGridHist.JPointSalePrice,
-					JGoodsAmt=TPosGridHist.JGridAmt
+					JGoodsAmt=TPosGridHist.JGridAmt,TPosGridHist.JDiscRate
 					from TPosBillHist
 					left outer join TPosGridHist on TPosGridHist.JBillID=TPosBillHist.JBillID
 					) as TPosBill
@@ -245,12 +247,12 @@ on import_total.JClassCode=category_sale_summary.JClassCode
                 [
                 ('Customer_Product',
                  '''
-                 -- details for customer
+                 -- summary by product of customer
                  select case when  b.jsupclientname is null then 'General(Cash)' else b.jsupclientname end as Customer_Name,g.jgoodscode as Product_Code,g.jgoodsname as Product_Name,sum(a.jgoodsqty) as Total_Quantity,sum(a.jgoodsamt) as Total_Amount
                  from'''+sale_bill_detail+'''
                  inner join tgoods g on a.jgoodsid=g.jid
                  left join tsupclient b on a.jsupclientid=b.jid
-                 
+                  where jbilldate between '{0}' and dateadd(d,1,'{1}') --and jsupclientname
                  group by b.jsupclientname,g.jgoodsname,g.jgoodscode
                  order by jsupclientname ,Total_Amount desc
                  '''.format(self.date_start, self.date_end)
@@ -279,6 +281,17 @@ on import_total.JClassCode=category_sale_summary.JClassCode
                  group by b.jsupclientname
                  order by Total_Amount desc'''.format(self.date_start, self.date_end)
                 ),
+                ('Customer_Detail',
+                 '''
+                 -- details for customer
+                 select case when  b.jsupclientname is null then 'General(Cash)' else b.jsupclientname end as Customer_Name,a.jbilldate,g.jgoodscode as Product_Code,g.jgoodsname as Product_Name, a.jgoodsqty as  Quantity, a.jgoodsamt  as Amount,a.JDiscRate as Discount_Rate
+                 from'''+sale_bill_detail+'''
+                 inner join tgoods g on a.jgoodsid=g.jid
+                 left join tsupclient b on a.jsupclientid=b.jid
+                   where jbilldate between '{0}' and dateadd(d,1,'{1}') --and jsupclientname
+                 order by jsupclientname ,a.jbilldate,Amount desc
+                 '''.format(self.date_start, self.date_end)
+                ),
                 ('Customer_Info',
                  '''
                 select jsupclientcode as Code,jsupclientName as Name,jaddress as Address,jPostcode as Postcode,
@@ -301,7 +314,8 @@ on import_total.JClassCode=category_sale_summary.JClassCode
                 ,a.jbillamt-case when sum(b.jcurclramt) is null then 0 else sum(b.jcurclramt) end as  Not_Paid_Amount
                 from
                 (
-                /*挂账零售单据 只当作应付款单据,不需要当作收款单据.
+                /*
+                挂账零售单据 只当作应付款单据,不需要当作收款单据.
                 排除取消的销售单据(只有销售开票有取消状态)
                 */
                 select   a.jbillid ,DATEADD(dd, 0, DATEDIFF(dd, 0, b.jbilldate)) as jbilldate

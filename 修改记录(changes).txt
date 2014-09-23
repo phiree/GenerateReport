@@ -1,5 +1,10 @@
+9.23------------------------------
+客户消费报表(Customer_Sale_Report) 增加Customer_Detail表单,统计客户的详细购买情况.
+
+
 7.9-------------------------------
 产品报表(Product_Sale_Report)里面增加一列: 选择期间内的总进货量(Total_Wareentry_Quantity_Cp)
+_cp means 'Current Period'
 
 6.26--------------------------------
 
